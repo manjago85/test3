@@ -1,5 +1,5 @@
 navbar:
-  title: "My Website"
+  title: "ChObPr"
   left:
     - text: "Home"
       href: index.html
