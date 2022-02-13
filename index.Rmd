@@ -1,6 +1,612 @@
 ---
-title: "My Website"
+title: "Childhood Obesity in CR"
 ---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(sf)
+library(plotly)
+library(patchwork)
+#library(mgcv)
+library(spdep)
+#library(visreg)
+#library(DT)
+library(INLA)
+
+# setwd("C:/Users/manja/OneDrive - Universidad Estatal a Distancia/Escritorio/UCR/Maestria/KAUST/proyectoR")
+
+```
+
+```{r include=FALSE}
+load("C:\\Users\\manja\\OneDrive - Universidad Estatal a Distancia\\Escritorio\\UCR\\Maestria\\KAUST\\data\\censusdb.R")
+
+f1 <- "C:\\Users\\manja\\OneDrive - Universidad Estatal a Distancia\\Escritorio\\UCR\\Maestria\\KAUST\\data\\Map_cen_codes.csv"
+Mapcencodes <- read.csv(f1,stringsAsFactors = FALSE) %>%
+  mutate(CODIGO = as.character(CODIGO))
+f2 <- "C:\\Users\\manja\\OneDrive - Universidad Estatal a Distancia\\Escritorio\\UCR\\Maestria\\KAUST\\data\\vars_dist.csv"
+Vardist <- read.csv(f2,stringsAsFactors = FALSE) %>%
+  mutate(CODIGO = as.character(CODIGO))
+
+```
+
+# Descriptive Analysis
+
+## BMI by Age
+
+```{r echo=FALSE}
+ggplot(censusdb,aes(x = as.factor(EDADAÑOS), y = IMC)) + 
+  geom_boxplot(width = 0.5,
+               fill = "#35B779FF") +
+    labs(x = "",
+         y = "BMI") +
+  theme_bw()
+
+```
+
+## Sample Composition
+
+```{r echo=FALSE}
+sexdf <- censusdb %>% 
+  select(Sexo) %>%
+  count(Sexo) %>%
+  mutate(proportion = n/sum(n))
+
+p1 <- sexdf %>%
+  ggplot(aes(x = Sexo,
+             y = proportion)) +
+  geom_bar(stat = "identity",
+           width = 0.2,
+           fill = "#35B779FF") +
+  ggtitle("Sex") +
+  labs(x = "",
+       y = "") +
+  scale_y_continuous(labels = scales::percent) +
+  theme_bw()
+
+```
+
+
+```{r echo=FALSE}
+insttypedf <- censusdb %>% 
+  select(TipoInstitucion) %>%
+  count(TipoInstitucion) %>%
+  mutate(proportion = n/sum(n))
+
+p2 <- insttypedf %>%
+  ggplot(aes(x = reorder(TipoInstitucion,proportion),
+             y = proportion)) +
+  geom_bar(stat = "identity",
+           width = 0.2,
+           fill = "#35B779FF") +
+  coord_flip() +
+  ggtitle("Institution Type") +
+  labs(x = "",
+       y = "") +
+  scale_y_continuous(labels = scales::percent) +
+  theme_bw()
+
+```
+
+
+```{r echo=FALSE}
+provincedf <- censusdb %>% 
+  select(Provincia) %>%
+  count(Provincia) %>%
+  mutate(proportion = n/sum(n))
+
+p3 <- provincedf %>%
+  ggplot(aes(x = reorder(Provincia,proportion),
+             y = proportion)) +
+  geom_bar(stat = "identity",
+           width = 0.2,
+           fill = "#35B779FF") +
+  coord_flip() +
+  ggtitle("Province") +
+  labs(x = "",
+       y = "") +
+  scale_y_continuous(labels = scales::percent) +
+  theme_bw()
+
+```
+
+
+```{r echo=FALSE}
+agedf <- censusdb %>% 
+  select(EDADAÑOS) %>%
+  count(EDADAÑOS) %>%
+  mutate(proportion = n/sum(n))
+
+p4 <- agedf %>%
+  ggplot(aes(x = EDADAÑOS,
+             y = proportion)) +
+  geom_bar(stat = "identity",
+           width = 0.2,
+           fill = "#35B779FF") +
+  ggtitle("Age") +
+  labs(x = "",
+       y = "") +
+  scale_y_continuous(labels = scales::percent) +
+  theme_bw()
+
+```
+
+
+```{r echo=FALSE}
+nutristatedf <- censusdb %>% 
+  select(EstadoNutricional) %>%
+  mutate(EstadoNutricional = as.factor(EstadoNutricional)) %>% 
+  count(EstadoNutricional) %>%
+  mutate(proportion = n/sum(n))
+
+p5 <- nutristatedf %>%
+  ggplot(aes(x = EstadoNutricional,
+             y = proportion)) +
+  geom_bar(stat = "identity",
+           width = 0.2,
+           fill = "#35B779FF") +
+  ggtitle("Nutritional State") +
+  labs(x = "",
+       y = "") +
+  scale_y_continuous(labels = scales::percent) +
+  theme_bw()
+
+```
+
+```{r echo=FALSE}
+p1 + p2
+p3 + p4
+p5
+```
+
+## Condition Prevalence by...
+
+```{r echo=FALSE}
+prevvssex <- censusdb %>%
+  select(Sexo,EstadoNutricional) %>%
+  group_by(Sexo) %>% 
+  count(EstadoNutricional) %>%
+  mutate(prevalence = n/sum(n)) %>%
+  filter(EstadoNutricional >= 4L) %>%
+  summarise(prevalence = sum(prevalence))
+
+p8 <- prevvssex %>%
+  ggplot(aes(x = Sexo,
+             y = prevalence)) +
+  geom_bar(stat = "identity",
+           width = 0.2,
+           fill = "#35B779FF") +
+  ggtitle("Sex") +
+  labs(x = "",
+       y = "") +
+  scale_y_continuous(labels = scales::percent) +
+  theme_bw()
+
+```
+
+```{r echo=FALSE}
+prevvsinsttype <- censusdb %>%
+  select(TipoInstitucion,EstadoNutricional) %>%
+  group_by(TipoInstitucion) %>% 
+  count(EstadoNutricional) %>%
+  mutate(prevalence = n/sum(n)) %>%
+  filter(EstadoNutricional >= 4L) %>%
+  summarise(prevalence = sum(prevalence))
+
+p9 <- prevvsinsttype %>%
+  ggplot(aes(x = reorder(TipoInstitucion,prevalence),
+             y = prevalence)) +
+  geom_bar(stat = "identity",
+           width = 0.2,
+           fill = "#35B779FF") +
+  coord_flip() +
+  ggtitle("Institution Type") +
+  labs(x = "",
+       y = "") +
+  scale_y_continuous(labels = scales::percent) +
+  theme_bw()
+
+```
+
+```{r echo=FALSE}
+prevvsprov <- censusdb %>%
+  select(Provincia,EstadoNutricional) %>%
+  group_by(Provincia) %>% 
+  count(EstadoNutricional) %>%
+  mutate(prevalence = n/sum(n)) %>%
+  filter(EstadoNutricional >= 4L) %>%
+  summarise(prevalence = sum(prevalence))
+
+p10 <- prevvsprov %>%
+  ggplot(aes(x = reorder(Provincia,prevalence),
+             y = prevalence)) +
+  geom_bar(stat = "identity",
+           width = 0.2,
+           fill = "#35B779FF") +
+  coord_flip() +
+  ggtitle("Province") +
+  labs(x = "",
+       y = "") +
+  scale_y_continuous(labels = scales::percent) +
+  theme_bw()
+
+```
+
+```{r echo=FALSE}
+prevvsage <- censusdb %>%
+  select(EDADAÑOS,EstadoNutricional) %>%
+  group_by(EDADAÑOS) %>% 
+  count(EstadoNutricional) %>%
+  mutate(prevalence = n/sum(n)) %>%
+  filter(EstadoNutricional >= 4L) %>%
+  summarise(prevalence = sum(prevalence))
+
+p11 <- prevvsage %>%
+  ggplot(aes(x = EDADAÑOS,
+             y = prevalence)) +
+  geom_bar(stat = "identity",
+           width = 0.2,
+           fill = "#35B779FF") +
+  ggtitle("Age") +
+  labs(x = "",
+       y = "") +
+  scale_y_continuous(labels = scales::percent) +
+  theme_bw()
+
+p8 + p9
+p10 + p11
+
+```
+
+## Data by district
+
+```{r include=FALSE}
+owobdistrict <- censusdb %>%
+  select(Provincia,Canton,Distrito,EstadoNutricional) %>%
+  mutate(Canton = as.character(Canton),
+         Distrito = as.character(Distrito)) %>% 
+  group_by(Provincia,Canton,Distrito) %>% 
+  count(EstadoNutricional,Distrito) %>%
+  mutate(N = sum(n)) %>%
+  filter(EstadoNutricional >= 4L) %>%
+  group_by(Provincia,Canton,Distrito,N) %>% 
+  summarise(n = sum(n),.groups = "drop") %>%
+  mutate(Prev = n/N) %>%
+  mutate(DIST_INDEX = paste0(Provincia,Canton,Distrito)) %>%
+  left_join(Mapcencodes[,c("DIST_INDEX","CODIGO")],by = "DIST_INDEX")
+
+```
+
+```{r echo=FALSE}
+p6 <- ggplot(owobdistrict,aes(x = "", y = Prev)) + 
+  geom_boxplot(width = 0.1,
+               fill = "#35B779FF") +
+  geom_jitter(shape = 16, 
+              position = position_jitter(0.01)) +
+    labs(x = "",
+         y = "Prevalence") +
+  theme_bw()
+
+p7 <- ggplot(owobdistrict,aes(x = "", y = N)) + 
+  geom_boxplot(width = 0.1,
+               fill = "#35B779FF") +
+  geom_jitter(shape = 16, 
+              position = position_jitter(0.01)) +
+    labs(x = "",
+         y = "Sample Size") +
+  theme_bw()
+
+p6 + p7
+
+```
+
+## Maps
+```{r include=FALSE}
+f3 <- "C:\\Users\\manja\\OneDrive - Universidad Estatal a Distancia\\Escritorio\\UCR\\Maestria\\KAUST\\proyectoR\\39d23d7f-7660-426a-9597-2948bdaad6fd2020328-1-7atdtw.5qcln.shp"
+
+CRdist <- st_read(f3)
+# ggplot(data = CRdist) +
+#   geom_sf()
+box <- c(xmin = -86.5, ymin = 7.5, xmax = -82.5, ymax = 11.5)
+#crbox <- st_bbox(box,crs = "WGS84")
+CRdistc <- st_crop(CRdist,box)
+CRdistc <- CRdistc %>%
+  mutate(CODIGO = as.character(CODIGO),
+         NOM_DIST = as.character(NOM_DIST))
+  
+CRdistc$NOM_CANT <- str_replace_all(CRdistc$NOM_CANT,c("AGUIRRE"="QUEPOS",
+                                   "VALVERDE VEGA"="SARCHI"))
+
+CRdistc <- CRdistc %>% left_join(owobdistrict[,c("CODIGO","Prev","N","n")],
+                                 by = "CODIGO") %>%
+  left_join(Vardist[,c(1,6:19)],by = "CODIGO")
+CRdistc <- sf::st_cast(CRdistc,"MULTIPOLYGON")
+CRdistdf <- st_drop_geometry(CRdistc)
+```
+
+### Condition Prevalence
+```{r echo=FALSE, warning=FALSE}
+
+pl1 <- plot_ly(CRdistc,
+        type = "scatter",
+        mode = "lines",
+        color = ~Prev,
+        split = ~NOM_DIST,
+        stroke = I("black"),
+        text = ~paste(NOM_DIST, ":", round(Prev,2),"\n","n:",n,"\n","N:",N),
+        hoveron = "fills",
+        hoverinfo = "text",
+        alpha = 1) %>%
+  layout(showlegend = FALSE) %>%
+  colorbar(title = "")
+
+# save(pl1, file = "pl1.Rdata")
+# load("pl1.Rdata")
+pl1
+
+
+```
+
+### Sample Size
+```{r eval=FALSE, warning=FALSE, include=FALSE}
+# pl2 <- plot_ly(CRdistc,
+#         type = "scatter",
+#         mode = "lines",
+#         color = ~log(N),
+#         split = ~NOM_DIST,
+#         stroke = I("black"),
+#         text = ~paste(NOM_DIST, ":", round(N,2)),
+#         hoveron = "fills",
+#         hoverinfo = "text",
+#         alpha = 1) %>%
+#   layout(showlegend = FALSE) %>%
+#   colorbar(title = "")
+# 
+# save(pl2, file = "pl2.Rdata")
+# load("pl2.Rdata")
+# pl2
+
+```
+
+## Covariates
+
+```{r echo=FALSE, warning=FALSE}
+CRdata <- CRdistdf %>%
+  select(Prev,FUERA_TRABAJO:ACUEDUCTO) %>%
+  pivot_longer(!Prev, 
+               names_to = "var", 
+               values_to = "value")
+
+ggplot(CRdata,aes(x = value)) +
+  geom_histogram() +
+  facet_wrap(~ var, scales = "free") +
+  theme_bw()
+
+ggplot(CRdata,aes(x = value, y = Prev)) +
+  geom_point() +
+  facet_wrap(~ var, scales = "free") +
+  theme_bw()
+
+```
+
+# Model
+
+BYM2
+
+$$\eta=\mu+x\beta+(\phi^*\sqrt{\rho/s}+\theta^*\sqrt{1-\rho})\sigma$$
+
+```{r include=FALSE}
+crm <- CRdistc %>% mutate(ID = factor(ID))
+crm$pid <- factor(1:nrow(crm))
+crv <- CRdistdf %>% mutate(ID = factor(ID))
+crv$pid <- factor(1:nrow(crv))
+# crm <- as(crm,Class = "Spatial")
+#Acá se obtienen primero los vecinos espaciales para
+#determinar cuáles no tienen vecinos (islas)
+nb <- spdep::poly2nb(crm,
+                    queen = TRUE)
+iv <- which(sapply(nb,FUN = function(x) sum(x) == 0))
+# Esto es para no eliminar a la isla Chira, que es un distrito insular
+iv <- iv[-79]
+
+#Bases finales para los modelos
+crm <-  crm %>% slice(-c(iv))
+crm <- as(crm,Class = "Spatial")
+#plot(crm)
+crv <- crv %>% slice(-c(iv))
+
+#Vecinos por locación
+
+nb <- spdep::poly2nb(crm,
+                    queen = FALSE,
+                    row.names = crm$pid)
+names(nb) <- attr(nb,"region.id")
+
+# nbs<-knearneigh(coordinates(crm), k = 3, longlat = T) #k=5 nearest neighbors
+# nb<-knn2nb(nbs, row.names = crv$pid, sym = T)
+# names(nb) <- attr(nb,"region.id")
+# coords <- coordinates(crm)
+# plot(crm);plot(nb, coords, add=TRUE)
+
+# all.equal(sort(names(nb)),sort(levels(crm$ID)))
+# all(names(nb) %in% levels(crm$INDEX))
+
+#Vecinos por clusters
+# gq <- nrow(crv)
+# X <- sapply(1:gq, FUN = function(i){
+#   crv[,26] == crv[i,26]
+# })
+# X <- X * 1
+# diag(X) <- 0
+# ids <- crv$ID
+# M <- mat2listw(X,row.names = ids)
+# nb <- M$neighbours
+# names(nb) <- attr(nb,"region.id")
+
+
+#Vecinos por clusters y por locación
+# gq <- nrow(crv) 
+# X <- sapply(1:gq, FUN = function(i){
+#   crv[,26] == crv[i,26]
+# })
+# X <- X * 1
+# diag(X) <- 0
+# nb1 <- spdep::poly2nb(crm,
+#                     queen = TRUE)
+# Y <- nb2mat(nb1, style="B",zero.policy = TRUE)
+# Z <- X * Y
+# 
+# ids <- crv$ID 
+# M <- mat2listw(Z,row.names = ids)
+# nb <- M$neighbours
+# names(nb) <- attr(nb,"region.id")
+
+
+```
+
+```{r echo=TRUE}
+crv$ID2 <- 1:nrow(crv)
+nb2INLA("map.adj", nb)
+g <- inla.read.graph(filename = "map.adj")
+
+# NY8.mat <- as(nb2mat(nb, style = "B",zero.policy = TRUE), "Matrix")
+# ICARmatrix <- Diagonal(nrow(NY8.mat), apply(NY8.mat, 1, sum)) - NY8.mat
+# Cmatrix <- Diagonal(nrow(crv), 1) -  ICARmatrix
+# max(eigen(Cmatrix)$values)
+# 
+# 
+# mmatrix <- model.matrix(n ~ POB_URBANA +
+#             FUERA_TRABAJO +
+#             CARENCIA +
+#             POB_014 +
+#             HOG_MUJER +
+#             OCUPANTES +
+#             ESCOLA + I(ESCOLA^2), crv)
+# W <- as(nb2mat(nb, style = "W",zero.policy = TRUE), "Matrix")
+# Q.beta = Diagonal(n = ncol(mmatrix), x = 0.001)
+# rho.min<- -1
+# rho.max<- 1
+# args.slm = list(
+#    rho.min = rho.min ,
+#    rho.max = rho.max,
+#    W = W,
+#    X = mmatrix,
+#    Q.beta = Q.beta
+# )
+# hyper.slm = list(
+#    prec = list(
+#       prior = "loggamma", param = c(0.01, 0.01)),
+#       rho = list(initial=0, prior = "logitbeta", param = c(1,1))
+# )
+
+
+
+# fr <- n ~ FUERA_TRABAJO +
+#             CARENCIA +
+#             POB_014 +
+#             ESCOLA + I(ESCOLA^2) +
+#   f(ID2, model = "bym2", graph = g)
+# 
+# fr <- n ~   POB_URBANA +
+#             FUERA_TRABAJO +
+#             CARENCIA +
+#             POB_014 +
+#             HOG_MUJER +
+#             OCUPANTES +
+#             ESCOLA + I(ESCOLA^2) +
+#   f(ID2, model = "generic1", Cmatrix = Cmatrix)
+# 
+# fr <- n ~ -1 +
+#   f(ID2, model = "slm", args.slm = args.slm,
+#     hyper = hyper.slm)
+
+fr <- n ~ POB_URBANA +
+            FUERA_TRABAJO +
+            CARENCIA +
+            POB_014 +
+            HOG_MUJER +
+            OCUPANTES +
+            ESCOLA + I(ESCOLA^2) +
+  f(ID2, model = "bym2", graph = g)
+
+fit <- inla(fr,
+             family = 'binomial',
+             Ntrials = N,
+             data = crv,
+             control.family = list(link = 'logit'),
+             control.predictor = list(link = 1,
+                                      compute = TRUE),
+             control.compute = list(dic = TRUE,
+                                    cpo = TRUE,
+                                    waic = TRUE,
+                                    return.marginals.predictor = TRUE))
+
+fit$waic$waic
+
+```
+
+
+```{r echo=FALSE}
+summary(fit)
+```
+
+
+```{r include=FALSE}
+#inla.set.control.fixed.default()[c("mean.intercept", "prec.intercept", "mean", "prec")]
+ft <- fit$summary.fitted.values
+est <- ft[,1]
+li <- ft[,3]
+ls <- ft[,5]
+#marg <- fit6$marginals.fitted.values[[1]]
+#1 - inla.pmarginal(q = 0.3, marginal = marg)
+exc <- sapply(fit$marginals.fitted.values,
+FUN = function(marg){1 - inla.pmarginal(q = 0.3, marginal = marg)})
+
+geodf <- st_as_sf(crm)
+mdata <- cbind(geodf,est = est,li = li,ls = ls,exc = exc)
+```
+
+### Fitted values (mean)
+```{r echo=FALSE}
+ggplot(data = mdata) +
+    geom_sf(aes(fill = est)) +
+    scale_fill_viridis_c(option = "viridis", 
+                       limits = c(0.125,0.55)) +
+  labs(x = "Longitude", y = "Latitude", fill = "") +
+  theme_bw()
+```
+
+### Lower value 0.025
+```{r echo=FALSE}
+ggplot(data = mdata) +
+    geom_sf(aes(fill = li)) +
+    scale_fill_viridis_c(option = "viridis", 
+                       limits = c(0.125,0.55)) +
+    labs(x = "Longitude", y = "Latitude", fill = "") +
+  theme_bw()
+```
+
+### Upper value 97.5
+```{r echo=FALSE}
+ggplot(data = mdata) +
+    geom_sf(aes(fill = ls)) +
+    scale_fill_viridis_c(option = "viridis", 
+                       limits = c(0.125,0.55)) +
+    labs(x = "Longitude", y = "Latitude", fill = "") +
+  theme_bw()
+```
+
+### Exceedence probability (0.3 prevalence)
+```{r echo=FALSE}
+ggplot(data = mdata) +
+    geom_sf(aes(fill = exc)) +
+    scale_fill_viridis_c(option = "viridis", 
+                       limits = c(0,1)) +
+    labs(x = "Longitude", y = "Latitude", fill = "") +
+  theme_bw()
+```
+
 
 Hello, Website!
 
