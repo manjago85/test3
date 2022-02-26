@@ -19,7 +19,7 @@ library(INLA)
 
 ```
 
-```{r include=FALSE}
+``` {r echo=FALSE}
 load("C:\\Users\\manja\\OneDrive - Universidad Estatal a Distancia\\Escritorio\\UCR\\Maestria\\KAUST\\data\\censusdb.R")
 
 f1 <- "C:\\Users\\manja\\OneDrive - Universidad Estatal a Distancia\\Escritorio\\UCR\\Maestria\\KAUST\\data\\Map_cen_codes.csv"
@@ -160,105 +160,6 @@ p3 + p4
 p5
 ```
 
-## Condition Prevalence by...
-
-```{r echo=FALSE}
-prevvssex <- censusdb %>%
-  select(Sexo,EstadoNutricional) %>%
-  group_by(Sexo) %>% 
-  count(EstadoNutricional) %>%
-  mutate(prevalence = n/sum(n)) %>%
-  filter(EstadoNutricional >= 4L) %>%
-  summarise(prevalence = sum(prevalence))
-
-p8 <- prevvssex %>%
-  ggplot(aes(x = Sexo,
-             y = prevalence)) +
-  geom_bar(stat = "identity",
-           width = 0.2,
-           fill = "#35B779FF") +
-  ggtitle("Sex") +
-  labs(x = "",
-       y = "") +
-  scale_y_continuous(labels = scales::percent) +
-  theme_bw()
-
-```
-
-```{r echo=FALSE}
-prevvsinsttype <- censusdb %>%
-  select(TipoInstitucion,EstadoNutricional) %>%
-  group_by(TipoInstitucion) %>% 
-  count(EstadoNutricional) %>%
-  mutate(prevalence = n/sum(n)) %>%
-  filter(EstadoNutricional >= 4L) %>%
-  summarise(prevalence = sum(prevalence))
-
-p9 <- prevvsinsttype %>%
-  ggplot(aes(x = reorder(TipoInstitucion,prevalence),
-             y = prevalence)) +
-  geom_bar(stat = "identity",
-           width = 0.2,
-           fill = "#35B779FF") +
-  coord_flip() +
-  ggtitle("Institution Type") +
-  labs(x = "",
-       y = "") +
-  scale_y_continuous(labels = scales::percent) +
-  theme_bw()
-
-```
-
-```{r echo=FALSE}
-prevvsprov <- censusdb %>%
-  select(Provincia,EstadoNutricional) %>%
-  group_by(Provincia) %>% 
-  count(EstadoNutricional) %>%
-  mutate(prevalence = n/sum(n)) %>%
-  filter(EstadoNutricional >= 4L) %>%
-  summarise(prevalence = sum(prevalence))
-
-p10 <- prevvsprov %>%
-  ggplot(aes(x = reorder(Provincia,prevalence),
-             y = prevalence)) +
-  geom_bar(stat = "identity",
-           width = 0.2,
-           fill = "#35B779FF") +
-  coord_flip() +
-  ggtitle("Province") +
-  labs(x = "",
-       y = "") +
-  scale_y_continuous(labels = scales::percent) +
-  theme_bw()
-
-```
-
-```{r echo=FALSE}
-prevvsage <- censusdb %>%
-  select(EDADAÑOS,EstadoNutricional) %>%
-  group_by(EDADAÑOS) %>% 
-  count(EstadoNutricional) %>%
-  mutate(prevalence = n/sum(n)) %>%
-  filter(EstadoNutricional >= 4L) %>%
-  summarise(prevalence = sum(prevalence))
-
-p11 <- prevvsage %>%
-  ggplot(aes(x = EDADAÑOS,
-             y = prevalence)) +
-  geom_bar(stat = "identity",
-           width = 0.2,
-           fill = "#35B779FF") +
-  ggtitle("Age") +
-  labs(x = "",
-       y = "") +
-  scale_y_continuous(labels = scales::percent) +
-  theme_bw()
-
-p8 + p9
-p10 + p11
-
-```
-
 ## Data by district
 
 ```{r include=FALSE}
@@ -270,34 +171,18 @@ owobdistrict <- censusdb %>%
   count(EstadoNutricional,Distrito) %>%
   mutate(N = sum(n)) %>%
   filter(EstadoNutricional >= 4L) %>%
+  pivot_wider(names_from = EstadoNutricional,
+              values_from = n) %>%
+  rename("nov"  = "4",
+         "nob"  = "5") %>%
+  mutate(n = sum(c(nov,nob),na.rm = TRUE)) %>% 
   group_by(Provincia,Canton,Distrito,N) %>% 
-  summarise(n = sum(n),.groups = "drop") %>%
-  mutate(Prev = n/N) %>%
+  #summarise(n = sum(n),.groups = "drop")
+  mutate(Prev = n/N,
+         Prevov = nov/N,
+         Prevob = nob/N) %>%
   mutate(DIST_INDEX = paste0(Provincia,Canton,Distrito)) %>%
   left_join(Mapcencodes[,c("DIST_INDEX","CODIGO")],by = "DIST_INDEX")
-
-```
-
-```{r echo=FALSE}
-p6 <- ggplot(owobdistrict,aes(x = "", y = Prev)) + 
-  geom_boxplot(width = 0.1,
-               fill = "#35B779FF") +
-  geom_jitter(shape = 16, 
-              position = position_jitter(0.01)) +
-    labs(x = "",
-         y = "Prevalence") +
-  theme_bw()
-
-p7 <- ggplot(owobdistrict,aes(x = "", y = N)) + 
-  geom_boxplot(width = 0.1,
-               fill = "#35B779FF") +
-  geom_jitter(shape = 16, 
-              position = position_jitter(0.01)) +
-    labs(x = "",
-         y = "Sample Size") +
-  theme_bw()
-
-p6 + p7
 
 ```
 
@@ -318,88 +203,62 @@ CRdistc <- CRdistc %>%
 CRdistc$NOM_CANT <- str_replace_all(CRdistc$NOM_CANT,c("AGUIRRE"="QUEPOS",
                                    "VALVERDE VEGA"="SARCHI"))
 
-CRdistc <- CRdistc %>% left_join(owobdistrict[,c("CODIGO","Prev","N","n")],
+CRdistc <- CRdistc %>% left_join(owobdistrict[,c("CODIGO","Prev","N","n","nov","nob","Prevov","Prevob")],
                                  by = "CODIGO") %>%
   left_join(Vardist[,c(1,6:19)],by = "CODIGO")
 CRdistc <- sf::st_cast(CRdistc,"MULTIPOLYGON")
 CRdistdf <- st_drop_geometry(CRdistc)
 ```
 
-### Condition Prevalence
-```{r echo=FALSE, warning=FALSE}
-
-pl1 <- plot_ly(CRdistc,
-        type = "scatter",
-        mode = "lines",
-        color = ~Prev,
-        split = ~NOM_DIST,
-        stroke = I("black"),
-        text = ~paste(NOM_DIST, ":", round(Prev,2),"\n","n:",n,"\n","N:",N),
-        hoveron = "fills",
-        hoverinfo = "text",
-        alpha = 1) %>%
-  layout(showlegend = FALSE) %>%
-  colorbar(title = "")
-
-# save(pl1, file = "pl1.Rdata")
-# load("pl1.Rdata")
-pl1
-
-
-```
-
-### Sample Size
-```{r eval=FALSE, warning=FALSE, include=FALSE}
-# pl2 <- plot_ly(CRdistc,
-#         type = "scatter",
-#         mode = "lines",
-#         color = ~log(N),
-#         split = ~NOM_DIST,
-#         stroke = I("black"),
-#         text = ~paste(NOM_DIST, ":", round(N,2)),
-#         hoveron = "fills",
-#         hoverinfo = "text",
-#         alpha = 1) %>%
-#   layout(showlegend = FALSE) %>%
-#   colorbar(title = "")
-# 
-# save(pl2, file = "pl2.Rdata")
-# load("pl2.Rdata")
-# pl2
-
-```
-
 ## Covariates
 
 ```{r echo=FALSE, warning=FALSE}
 CRdata <- CRdistdf %>%
-  select(Prev,FUERA_TRABAJO:ACUEDUCTO) %>%
-  pivot_longer(!Prev, 
+  select(Prev,Prevov,Prevob,FUERA_TRABAJO:ACUEDUCTO) %>%
+  pivot_longer(!c(Prev,Prevov,Prevob), 
                names_to = "var", 
                values_to = "value")
 
-ggplot(CRdata,aes(x = value)) +
-  geom_histogram() +
-  facet_wrap(~ var, scales = "free") +
-  theme_bw()
+#Change colnames
+
+# ggplot(CRdata,aes(x = value)) +
+#   geom_histogram() +
+#   facet_wrap(~ var, scales = "free") +
+#   theme_bw()
 
 ggplot(CRdata,aes(x = value, y = Prev)) +
   geom_point() +
+  geom_smooth(method = "gam") +
   facet_wrap(~ var, scales = "free") +
-  theme_bw()
+  theme_bw() +
+  ggtitle("Combined")
+
+ggplot(CRdata,aes(x = value, y = Prevov)) +
+  geom_point() +
+  geom_smooth(method = "gam") +
+  facet_wrap(~ var, scales = "free") +
+  theme_bw() +
+  ggtitle("Overweight")
+
+ggplot(CRdata,aes(x = value, y = Prevob)) +
+  geom_point() +
+  geom_smooth(method = "gam") +
+  facet_wrap(~ var, scales = "free") +
+  theme_bw() +
+  ggtitle("Obesity")
 
 ```
 
 # Model
 
-BYM2
-
-$$\eta=\mu+x\beta+(\phi^*\sqrt{\rho/s}+\theta^*\sqrt{1-\rho})\sigma$$
-
 ```{r include=FALSE}
-crm <- CRdistc %>% mutate(ID = factor(ID))
+crm <- CRdistc %>%
+  #na.omit() %>% 
+  mutate(ID = factor(ID))
 crm$pid <- factor(1:nrow(crm))
-crv <- CRdistdf %>% mutate(ID = factor(ID))
+crv <- CRdistdf %>% 
+  #na.omit() %>% 
+  mutate(ID = factor(ID))
 crv$pid <- factor(1:nrow(crv))
 # crm <- as(crm,Class = "Spatial")
 #Acá se obtienen primero los vecinos espaciales para
@@ -465,7 +324,68 @@ names(nb) <- attr(nb,"region.id")
 
 ```
 
-```{r echo=TRUE}
+### Condition Prevalence
+```{r echo=FALSE, warning=FALSE}
+mypalette <- colorNumeric( palette="viridis", domain=crm$Prev, na.color="transparent")
+mytext <- paste(
+    "Canton: ",crm$NOM_CANT,"<br/>",
+    "District: ",crm$NOM_DIST,"<br/>",
+    "Value: ", round(crm$Prev,2), "<br/>",
+    "n: ", crm$n, "<br/>",
+    "N: ", crm$N, "<br/>",
+    sep="") %>%
+  lapply(htmltools::HTML)
+
+leaflet(crm) %>% 
+  addTiles()  %>% 
+  setView(lat=9.56, lng=-84.05 , zoom=7) %>%
+  addProviderTiles("Esri.WorldGrayCanvas") %>% 
+  addPolygons( fillColor = ~mypalette(crm[["Prev"]]), stroke=FALSE,fillOpacity = 1,smoothFactor = 0,label = mytext)
+
+
+mypalette <- colorNumeric( palette="viridis", domain=crm$Prevov, na.color="transparent")
+mytext <- paste(
+    "Canton: ",crm$NOM_CANT,"<br/>",
+    "District: ",crm$NOM_DIST,"<br/>",
+    "Value: ", round(crm$Prevov,2), "<br/>",
+    "n: ", crm$nov, "<br/>",
+    "N: ", crm$N, "<br/>",
+    sep="") %>%
+  lapply(htmltools::HTML)
+
+leaflet(crm) %>% 
+  addTiles()  %>% 
+  setView(lat=9.56, lng=-84.05 , zoom=7) %>%
+  addProviderTiles("Esri.WorldGrayCanvas") %>% 
+  addPolygons( fillColor = ~mypalette(crm[["Prevov"]]), stroke=FALSE,fillOpacity = 1,smoothFactor = 0,label = mytext)
+
+mypalette <- colorNumeric( palette="viridis", domain=crm$Prevob, na.color="transparent")
+mytext <- paste(
+    "Canton: ",crm$NOM_CANT,"<br/>",
+    "District: ",crm$NOM_DIST,"<br/>",
+    "Value: ", round(crm$Prevob,2), "<br/>",
+    "n: ", crm$nob, "<br/>",
+    "N: ", crm$N, "<br/>",
+    sep="") %>%
+  lapply(htmltools::HTML)
+
+leaflet(crm) %>% 
+  addTiles()  %>% 
+  setView(lat=9.56, lng=-84.05 , zoom=7) %>%
+  addProviderTiles("Esri.WorldGrayCanvas") %>% 
+  addPolygons( fillColor = ~mypalette(crm[["Prevob"]]), stroke=FALSE,fillOpacity = 1,smoothFactor = 0,label = mytext)
+
+```
+
+
+```{r eval=FALSE, include=FALSE}
+#Moran test
+moran.test(crm$Prev, nb2listw(nb, style="B",zero.policy = TRUE),zero.policy = TRUE)
+
+```
+
+# Model (Combined)
+```{r include=FALSE}
 crv$ID2 <- 1:nrow(crv)
 nb2INLA("map.adj", nb)
 g <- inla.read.graph(filename = "map.adj")
@@ -560,50 +480,357 @@ li <- ft[,3]
 ls <- ft[,5]
 #marg <- fit6$marginals.fitted.values[[1]]
 #1 - inla.pmarginal(q = 0.3, marginal = marg)
-exc <- sapply(fit$marginals.fitted.values,
+excl <- sapply(fit$marginals.fitted.values,
 FUN = function(marg){1 - inla.pmarginal(q = 0.3, marginal = marg)})
+excm <- sapply(fit$marginals.fitted.values,
+FUN = function(marg){1 - inla.pmarginal(q = 0.34, marginal = marg)})
+excu <- sapply(fit$marginals.fitted.values,
+FUN = function(marg){1 - inla.pmarginal(q = 0.38, marginal = marg)})
+
+
 
 geodf <- st_as_sf(crm)
-mdata <- cbind(geodf,est = est,li = li,ls = ls,exc = exc)
+mdata <- cbind(geodf,est = est,li = li,ls = ls,excl = excl,excm = excm, excu = excu)
 ```
 
 ### Fitted values (mean)
 ```{r echo=FALSE}
-ggplot(data = mdata) +
-    geom_sf(aes(fill = est)) +
-    scale_fill_viridis_c(option = "viridis", 
-                       limits = c(0.125,0.55)) +
-  labs(x = "Longitude", y = "Latitude", fill = "") +
-  theme_bw()
+mypalette <- colorNumeric( palette="viridis", domain=c(0.125,0.56), na.color="transparent")
+mytext <- paste(
+    "Canton: ",mdata$NOM_CANT,"<br/>",
+    "District: ",mdata$NOM_DIST,"<br/>",
+    "Value: ", round(mdata$est,2), "<br/>",
+    sep="") %>%
+  lapply(htmltools::HTML)
+
+leaflet(mdata) %>% 
+  addTiles()  %>% 
+  setView(lat=9.56, lng=-84.05 , zoom=7) %>%
+  addProviderTiles("Esri.WorldGrayCanvas") %>% 
+  addPolygons( fillColor = ~mypalette(mdata[["est"]]), stroke=FALSE,fillOpacity = 1,smoothFactor = 0,label = mytext)
+
 ```
 
-### Lower value 0.025
-```{r echo=FALSE}
-ggplot(data = mdata) +
-    geom_sf(aes(fill = li)) +
-    scale_fill_viridis_c(option = "viridis", 
-                       limits = c(0.125,0.55)) +
-    labs(x = "Longitude", y = "Latitude", fill = "") +
-  theme_bw()
+### Exceedence probability (0.29 prevalence)
+```{r echo=FALSE, include=FALSE}
+mypalette <- colorNumeric( palette="viridis", domain=c(0,1), na.color="transparent")
+mytext <- paste(
+    "Canton: ",mdata$NOM_CANT,"<br/>",
+    "District: ",mdata$NOM_DIST,"<br/>",
+    "Value: ", round(mdata$excl,2), "<br/>",
+    sep="") %>%
+  lapply(htmltools::HTML)
+
+leaflet(mdata) %>% 
+  addTiles()  %>% 
+  setView(lat=9.56, lng=-84.05 , zoom=7) %>%
+  addProviderTiles("Esri.WorldGrayCanvas") %>% 
+  addPolygons( fillColor = ~mypalette(mdata[["excl"]]), stroke=FALSE,fillOpacity = 1,smoothFactor = 0,label = mytext)
+
 ```
 
-### Upper value 97.5
+
+### Exceedence probability (0.34 prevalence)
 ```{r echo=FALSE}
-ggplot(data = mdata) +
-    geom_sf(aes(fill = ls)) +
-    scale_fill_viridis_c(option = "viridis", 
-                       limits = c(0.125,0.55)) +
-    labs(x = "Longitude", y = "Latitude", fill = "") +
-  theme_bw()
+mypalette <- colorNumeric( palette="viridis", domain=c(0,1), na.color="transparent")
+mytext <- paste(
+    "Canton: ",mdata$NOM_CANT,"<br/>",
+    "District: ",mdata$NOM_DIST,"<br/>",
+    "Value: ", round(mdata$excm,2), "<br/>",
+    sep="") %>%
+  lapply(htmltools::HTML)
+
+leaflet(mdata) %>% 
+  addTiles()  %>% 
+  setView(lat=9.56, lng=-84.05 , zoom=7) %>%
+  addProviderTiles("Esri.WorldGrayCanvas") %>% 
+  addPolygons( fillColor = ~mypalette(mdata[["excm"]]), stroke=FALSE,fillOpacity = 1,smoothFactor = 0,label = mytext)
+
 ```
 
-### Exceedence probability (0.3 prevalence)
-```{r echo=FALSE}
-ggplot(data = mdata) +
-    geom_sf(aes(fill = exc)) +
-    scale_fill_viridis_c(option = "viridis", 
-                       limits = c(0,1)) +
-    labs(x = "Longitude", y = "Latitude", fill = "") +
-  theme_bw()
+
+### Exceedence probability (0.38 prevalence)
+```{r echo=FALSE, include=FALSE}
+mypalette <- colorNumeric( palette="viridis", domain=c(0,1), na.color="transparent")
+mytext <- paste(
+    "Canton: ",mdata$NOM_CANT,"<br/>",
+    "District: ",mdata$NOM_DIST,"<br/>",
+    "Value: ", round(mdata$excu,2), "<br/>",
+    sep="") %>%
+  lapply(htmltools::HTML)
+
+leaflet(mdata) %>% 
+  addTiles()  %>% 
+  setView(lat=9.56, lng=-84.05 , zoom=7) %>%
+  addProviderTiles("Esri.WorldGrayCanvas") %>% 
+  addPolygons( fillColor = ~mypalette(mdata[["excu"]]), stroke=FALSE,fillOpacity = 1,smoothFactor = 0,label = mytext)
+
 ```
+
+# Model (Overweight)
+```{r include=FALSE}
+
+fr <- nov ~ POB_URBANA +
+            FUERA_TRABAJO +
+            CARENCIA +
+            POB_014 +
+            HOG_MUJER +
+            OCUPANTES +
+            ESCOLA + I(ESCOLA^2) +
+  f(ID2, model = "bym2", graph = g)
+
+fit <- inla(fr,
+             family = 'binomial',
+             Ntrials = N,
+             data = crv,
+             control.family = list(link = 'logit'),
+             control.predictor = list(link = 1,
+                                      compute = TRUE),
+             control.compute = list(dic = TRUE,
+                                    cpo = TRUE,
+                                    waic = TRUE,
+                                    return.marginals.predictor = TRUE))
+
+fit$waic$waic
+
+```
+
+
+```{r echo=FALSE}
+summary(fit)
+```
+
+
+```{r include=FALSE}
+#inla.set.control.fixed.default()[c("mean.intercept", "prec.intercept", "mean", "prec")]
+ft <- fit$summary.fitted.values
+est <- ft[,1]
+li <- ft[,3]
+ls <- ft[,5]
+#marg <- fit6$marginals.fitted.values[[1]]
+#1 - inla.pmarginal(q = 0.3, marginal = marg)
+excl <- sapply(fit$marginals.fitted.values,
+FUN = function(marg){1 - inla.pmarginal(q = 0.18, marginal = marg)})
+excm <- sapply(fit$marginals.fitted.values,
+FUN = function(marg){1 - inla.pmarginal(q = 0.2, marginal = marg)})
+excu <- sapply(fit$marginals.fitted.values,
+FUN = function(marg){1 - inla.pmarginal(q = 0.22, marginal = marg)})
+
+
+
+geodf <- st_as_sf(crm)
+mdata <- cbind(geodf,est = est,li = li,ls = ls,excl = excl,excm = excm, excu = excu)
+```
+
+### Fitted values (mean)
+```{r echo=FALSE}
+mypalette <- colorNumeric( palette="viridis", domain=c(0.06,0.34), na.color="transparent")
+mytext <- paste(
+    "Canton: ",mdata$NOM_CANT,"<br/>",
+    "District: ",mdata$NOM_DIST,"<br/>",
+    "Value: ", round(mdata$est,2), "<br/>",
+    sep="") %>%
+  lapply(htmltools::HTML)
+
+leaflet(mdata) %>% 
+  addTiles()  %>% 
+  setView(lat=9.56, lng=-84.05 , zoom=7) %>%
+  addProviderTiles("Esri.WorldGrayCanvas") %>% 
+  addPolygons( fillColor = ~mypalette(mdata[["est"]]), stroke=FALSE,fillOpacity = 1,smoothFactor = 0,label = mytext)
+
+```
+
+
+
+### Exceedence probability (0.18 prevalence)
+```{r echo=FALSE, include=FALSE}
+mypalette <- colorNumeric( palette="viridis", domain=c(0,1), na.color="transparent")
+mytext <- paste(
+    "Canton: ",mdata$NOM_CANT,"<br/>",
+    "District: ",mdata$NOM_DIST,"<br/>",
+    "Value: ", round(mdata$excl,2), "<br/>",
+    sep="") %>%
+  lapply(htmltools::HTML)
+
+leaflet(mdata) %>% 
+  addTiles()  %>% 
+  setView(lat=9.56, lng=-84.05 , zoom=7) %>%
+  addProviderTiles("Esri.WorldGrayCanvas") %>% 
+  addPolygons( fillColor = ~mypalette(mdata[["excl"]]), stroke=FALSE,fillOpacity = 1,smoothFactor = 0,label = mytext)
+
+```
+
+
+### Exceedence probability (0.20 prevalence)
+```{r echo=FALSE}
+mypalette <- colorNumeric( palette="viridis", domain=c(0,1), na.color="transparent")
+mytext <- paste(
+    "Canton: ",mdata$NOM_CANT,"<br/>",
+    "District: ",mdata$NOM_DIST,"<br/>",
+    "Value: ", round(mdata$excm,2), "<br/>",
+    sep="") %>%
+  lapply(htmltools::HTML)
+
+leaflet(mdata) %>% 
+  addTiles()  %>% 
+  setView(lat=9.56, lng=-84.05 , zoom=7) %>%
+  addProviderTiles("Esri.WorldGrayCanvas") %>% 
+  addPolygons( fillColor = ~mypalette(mdata[["excm"]]), stroke=FALSE,fillOpacity = 1,smoothFactor = 0,label = mytext)
+
+```
+
+
+### Exceedence probability (0.22 prevalence)
+```{r echo=FALSE, include=FALSE}
+mypalette <- colorNumeric( palette="viridis", domain=c(0,1), na.color="transparent")
+mytext <- paste(
+    "Canton: ",mdata$NOM_CANT,"<br/>",
+    "District: ",mdata$NOM_DIST,"<br/>",
+    "Value: ", round(mdata$excu,2), "<br/>",
+    sep="") %>%
+  lapply(htmltools::HTML)
+
+leaflet(mdata) %>% 
+  addTiles()  %>% 
+  setView(lat=9.56, lng=-84.05 , zoom=7) %>%
+  addProviderTiles("Esri.WorldGrayCanvas") %>% 
+  addPolygons( fillColor = ~mypalette(mdata[["excu"]]), stroke=FALSE,fillOpacity = 1,smoothFactor = 0,label = mytext)
+
+```
+
+# Model (Obesity)
+```{r include=FALSE}
+
+fr <- nob ~ POB_URBANA +
+            FUERA_TRABAJO +
+            CARENCIA +
+            POB_014 +
+            HOG_MUJER +
+            OCUPANTES +
+            ESCOLA + I(ESCOLA^2) +
+  f(ID2, model = "bym2", graph = g)
+
+fit <- inla(fr,
+             family = 'binomial',
+             Ntrials = N,
+             data = crv,
+             control.family = list(link = 'logit'),
+             control.predictor = list(link = 1,
+                                      compute = TRUE),
+             control.compute = list(dic = TRUE,
+                                    cpo = TRUE,
+                                    waic = TRUE,
+                                    return.marginals.predictor = TRUE))
+
+fit$waic$waic
+
+```
+
+
+```{r echo=FALSE}
+summary(fit)
+```
+
+
+```{r include=FALSE}
+#inla.set.control.fixed.default()[c("mean.intercept", "prec.intercept", "mean", "prec")]
+ft <- fit$summary.fitted.values
+est <- ft[,1]
+li <- ft[,3]
+ls <- ft[,5]
+#marg <- fit6$marginals.fitted.values[[1]]
+#1 - inla.pmarginal(q = 0.3, marginal = marg)
+excl <- sapply(fit$marginals.fitted.values,
+FUN = function(marg){1 - inla.pmarginal(q = 0.11, marginal = marg)})
+excm <- sapply(fit$marginals.fitted.values,
+FUN = function(marg){1 - inla.pmarginal(q = 0.14, marginal = marg)})
+excu <- sapply(fit$marginals.fitted.values,
+FUN = function(marg){1 - inla.pmarginal(q = 0.17, marginal = marg)})
+
+
+
+geodf <- st_as_sf(crm)
+mdata <- cbind(geodf,est = est,li = li,ls = ls,excl = excl,excm = excm, excu = excu)
+```
+
+### Fitted values (mean)
+```{r echo=FALSE}
+mypalette <- colorNumeric( palette="viridis", domain=c(0.03,0.34), na.color="transparent")
+mytext <- paste(
+    "Canton: ",mdata$NOM_CANT,"<br/>",
+    "District: ",mdata$NOM_DIST,"<br/>",
+    "Value: ", round(mdata$est,2), "<br/>",
+    sep="") %>%
+  lapply(htmltools::HTML)
+
+leaflet(mdata) %>% 
+  addTiles()  %>% 
+  setView(lat=9.56, lng=-84.05 , zoom=7) %>%
+  addProviderTiles("Esri.WorldGrayCanvas") %>% 
+  addPolygons( fillColor = ~mypalette(mdata[["est"]]), stroke=FALSE,fillOpacity = 1,smoothFactor = 0,label = mytext)
+
+```
+
+
+
+### Exceedence probability (0.11 prevalence)
+```{r echo=FALSE, include=FALSE}
+mypalette <- colorNumeric( palette="viridis", domain=c(0,1), na.color="transparent")
+mytext <- paste(
+    "Canton: ",mdata$NOM_CANT,"<br/>",
+    "District: ",mdata$NOM_DIST,"<br/>",
+    "Value: ", round(mdata$excl,2), "<br/>",
+    sep="") %>%
+  lapply(htmltools::HTML)
+
+leaflet(mdata) %>% 
+  addTiles()  %>% 
+  setView(lat=9.56, lng=-84.05 , zoom=7) %>%
+  addProviderTiles("Esri.WorldGrayCanvas") %>% 
+  addPolygons( fillColor = ~mypalette(mdata[["excl"]]), stroke=FALSE,fillOpacity = 1,smoothFactor = 0,label = mytext)
+
+```
+
+
+### Exceedence probability (0.14 prevalence)
+```{r echo=FALSE}
+mypalette <- colorNumeric( palette="viridis", domain=c(0,1), na.color="transparent")
+mytext <- paste(
+    "Canton: ",mdata$NOM_CANT,"<br/>",
+    "District: ",mdata$NOM_DIST,"<br/>",
+    "Value: ", round(mdata$excm,2), "<br/>",
+    sep="") %>%
+  lapply(htmltools::HTML)
+
+leaflet(mdata) %>% 
+  addTiles()  %>% 
+  setView(lat=9.56, lng=-84.05 , zoom=7) %>%
+  addProviderTiles("Esri.WorldGrayCanvas") %>% 
+  addPolygons( fillColor = ~mypalette(mdata[["excm"]]), stroke=FALSE,fillOpacity = 1,smoothFactor = 0,label = mytext)
+
+```
+
+
+### Exceedence probability (0.17 prevalence)
+```{r eval=FALSE, include=FALSE}
+mypalette <- colorNumeric( palette="viridis", domain=c(0,1), na.color="transparent")
+mytext <- paste(
+    "Canton: ",mdata$NOM_CANT,"<br/>",
+    "District: ",mdata$NOM_DIST,"<br/>",
+    "Value: ", round(mdata$excu,2), "<br/>",
+    sep="") %>%
+  lapply(htmltools::HTML)
+
+leaflet(mdata) %>% 
+  addTiles()  %>% 
+  setView(lat=9.56, lng=-84.05 , zoom=7) %>%
+  addProviderTiles("Esri.WorldGrayCanvas") %>% 
+  addPolygons( fillColor = ~mypalette(mdata[["excu"]]), stroke=FALSE,fillOpacity = 1,smoothFactor = 0,label = mytext)
+
+```
+
+```{r echo=FALSE}
+remove(censusdb)
+```
+
 
