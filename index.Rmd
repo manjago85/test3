@@ -535,3 +535,4 @@ leaflet(mdata) %>%
   addPolygons( fillColor = ~mypalette(mdata[["excu"]]), stroke=FALSE,fillOpacity = 1,smoothFactor = 0,label = mytext)
 
 ```
+
