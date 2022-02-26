@@ -7,7 +7,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 library(tidyverse)
 library(sf)
-library(plotly)
+library(leaflet)
 library(patchwork)
 #library(mgcv)
 library(spdep)
@@ -19,7 +19,7 @@ library(INLA)
 
 ```
 
-``` {r echo=FALSE}
+```{r include=FALSE}
 load("C:\\Users\\manja\\OneDrive - Universidad Estatal a Distancia\\Escritorio\\UCR\\Maestria\\KAUST\\data\\censusdb.R")
 
 f1 <- "C:\\Users\\manja\\OneDrive - Universidad Estatal a Distancia\\Escritorio\\UCR\\Maestria\\KAUST\\data\\Map_cen_codes.csv"
@@ -511,8 +511,10 @@ leaflet(mdata) %>%
 
 ```
 
+
+
 ### Exceedence probability (0.29 prevalence)
-```{r echo=FALSE, include=FALSE}
+```{r echo=FALSE}
 mypalette <- colorNumeric( palette="viridis", domain=c(0,1), na.color="transparent")
 mytext <- paste(
     "Canton: ",mdata$NOM_CANT,"<br/>",
@@ -550,7 +552,7 @@ leaflet(mdata) %>%
 
 
 ### Exceedence probability (0.38 prevalence)
-```{r echo=FALSE, include=FALSE}
+```{r echo=FALSE}
 mypalette <- colorNumeric( palette="viridis", domain=c(0,1), na.color="transparent")
 mytext <- paste(
     "Canton: ",mdata$NOM_CANT,"<br/>",
@@ -643,7 +645,7 @@ leaflet(mdata) %>%
 
 
 ### Exceedence probability (0.18 prevalence)
-```{r echo=FALSE, include=FALSE}
+```{r echo=FALSE}
 mypalette <- colorNumeric( palette="viridis", domain=c(0,1), na.color="transparent")
 mytext <- paste(
     "Canton: ",mdata$NOM_CANT,"<br/>",
@@ -681,7 +683,7 @@ leaflet(mdata) %>%
 
 
 ### Exceedence probability (0.22 prevalence)
-```{r echo=FALSE, include=FALSE}
+```{r echo=FALSE}
 mypalette <- colorNumeric( palette="viridis", domain=c(0,1), na.color="transparent")
 mytext <- paste(
     "Canton: ",mdata$NOM_CANT,"<br/>",
@@ -774,7 +776,7 @@ leaflet(mdata) %>%
 
 
 ### Exceedence probability (0.11 prevalence)
-```{r echo=FALSE, include=FALSE}
+```{r echo=FALSE}
 mypalette <- colorNumeric( palette="viridis", domain=c(0,1), na.color="transparent")
 mytext <- paste(
     "Canton: ",mdata$NOM_CANT,"<br/>",
@@ -812,7 +814,7 @@ leaflet(mdata) %>%
 
 
 ### Exceedence probability (0.17 prevalence)
-```{r eval=FALSE, include=FALSE}
+```{r echo=FALSE}
 mypalette <- colorNumeric( palette="viridis", domain=c(0,1), na.color="transparent")
 mytext <- paste(
     "Canton: ",mdata$NOM_CANT,"<br/>",
@@ -829,8 +831,7 @@ leaflet(mdata) %>%
 
 ```
 
-```{r echo=FALSE}
+```{r}
 remove(censusdb)
 ```
-
 
