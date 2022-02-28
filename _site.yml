@@ -3,9 +3,11 @@ navbar:
   left:
     - text: "Home"
       href: index.html
-    - text: "About"
+    - text: "Combined"
       href: about.html
-    - text: "Test"
+    - text: "Overweight"
       href: Test.html
+    - text: "Obesity"
+      href: Obesity.html
 name: my-website
 output_dir: docs

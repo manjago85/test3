@@ -1,5 +1,5 @@
 ---
-title: "Childhood Obesity in CR"
+title: "Childhood Overweight and Obesity in CR"
 ---
 
 ```{r setup, include=FALSE}
@@ -15,11 +15,137 @@ library(spdep)
 #library(DT)
 library(INLA)
 
-# setwd("C:/Users/manja/OneDrive - Universidad Estatal a Distancia/Escritorio/UCR/Maestria/KAUST/proyectoR")
+```
+
+```{r include=FALSE}
+load("C:\\Users\\manja\\OneDrive - Universidad Estatal a Distancia\\Escritorio\\UCR\\Maestria\\KAUST\\data\\censusdb.R")
+```
+
+# Descriptive Analysis
+
+## BMI by Age
+
+```{r echo=FALSE}
+ggplot(censusdb,aes(x = as.factor(EDADAÑOS), y = IMC)) + 
+  geom_boxplot(width = 0.5,
+               fill = "#35B779FF") +
+    labs(x = "",
+         y = "BMI") +
+  theme_bw()
 
 ```
 
-```{r}
-2+2
+## Sample Composition
+
+```{r echo=FALSE}
+sexdf <- censusdb %>% 
+  select(Sexo) %>%
+  count(Sexo) %>%
+  mutate(proportion = n/sum(n))
+
+p1 <- sexdf %>%
+  ggplot(aes(x = Sexo,
+             y = proportion)) +
+  geom_bar(stat = "identity",
+           width = 0.2,
+           fill = "#35B779FF") +
+  ggtitle("Sex") +
+  labs(x = "",
+       y = "") +
+  scale_y_continuous(labels = scales::percent) +
+  theme_bw()
+
 ```
 
+
+```{r echo=FALSE}
+insttypedf <- censusdb %>% 
+  select(TipoInstitucion) %>%
+  count(TipoInstitucion) %>%
+  mutate(proportion = n/sum(n))
+
+p2 <- insttypedf %>%
+  ggplot(aes(x = reorder(TipoInstitucion,proportion),
+             y = proportion)) +
+  geom_bar(stat = "identity",
+           width = 0.2,
+           fill = "#35B779FF") +
+  coord_flip() +
+  ggtitle("Institution Type") +
+  labs(x = "",
+       y = "") +
+  scale_y_continuous(labels = scales::percent) +
+  theme_bw()
+
+```
+
+
+```{r echo=FALSE}
+provincedf <- censusdb %>% 
+  select(Provincia) %>%
+  count(Provincia) %>%
+  mutate(proportion = n/sum(n))
+
+p3 <- provincedf %>%
+  ggplot(aes(x = reorder(Provincia,proportion),
+             y = proportion)) +
+  geom_bar(stat = "identity",
+           width = 0.2,
+           fill = "#35B779FF") +
+  coord_flip() +
+  ggtitle("Province") +
+  labs(x = "",
+       y = "") +
+  scale_y_continuous(labels = scales::percent) +
+  theme_bw()
+
+```
+
+
+```{r echo=FALSE}
+agedf <- censusdb %>% 
+  select(EDADAÑOS) %>%
+  count(EDADAÑOS) %>%
+  mutate(proportion = n/sum(n))
+
+p4 <- agedf %>%
+  ggplot(aes(x = EDADAÑOS,
+             y = proportion)) +
+  geom_bar(stat = "identity",
+           width = 0.2,
+           fill = "#35B779FF") +
+  ggtitle("Age") +
+  labs(x = "",
+       y = "") +
+  scale_y_continuous(labels = scales::percent) +
+  theme_bw()
+
+```
+
+
+```{r echo=FALSE}
+nutristatedf <- censusdb %>% 
+  select(EstadoNutricional) %>%
+  mutate(EstadoNutricional = as.factor(EstadoNutricional)) %>% 
+  count(EstadoNutricional) %>%
+  mutate(proportion = n/sum(n))
+
+p5 <- nutristatedf %>%
+  ggplot(aes(x = EstadoNutricional,
+             y = proportion)) +
+  geom_bar(stat = "identity",
+           width = 0.2,
+           fill = "#35B779FF") +
+  ggtitle("Nutritional State") +
+  labs(x = "",
+       y = "") +
+  scale_y_continuous(labels = scales::percent) +
+  theme_bw()
+
+```
+
+```{r echo=FALSE}
+p1 + p2
+p3 + p4
+p5
+```

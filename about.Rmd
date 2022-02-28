@@ -1,5 +1,106 @@
 ---
-title: "Description"
+title: "Combined Prevalence"
 ---
 
-Main results
+```{r}
+load("C:\\Users\\manja\\OneDrive - Universidad Estatal a Distancia\\Escritorio\\UCR\\Maestria\\KAUST\\test3\\mdata.Rdata")
+```
+
+# Data
+```{r echo=FALSE, warning=FALSE}
+mypalette <- colorNumeric( palette="viridis", domain=mdata$Prev, na.color="transparent")
+mytext <- paste(
+    "Canton: ",mdata$NOM_CANT,"<br/>",
+    "District: ",mdata$NOM_DIST,"<br/>",
+    "Value: ", round(mdata$Prev,2), "<br/>",
+    "n: ", mdata$n, "<br/>",
+    "N: ", mdata$N, "<br/>",
+    sep="") %>%
+  lapply(htmltools::HTML)
+
+leaflet(mdata) %>% 
+  addTiles()  %>% 
+  setView(lat=9.56, lng=-84.05 , zoom=7) %>%
+  addProviderTiles("Esri.WorldGrayCanvas") %>% 
+  addPolygons( fillColor = ~mypalette(crm[["Prev"]]), stroke=FALSE,fillOpacity = 1,smoothFactor = 0,label = mytext)
+
+
+```
+
+
+### Fitted values (mean)
+```{r echo=FALSE}
+mypalette <- colorNumeric( palette="viridis", domain=c(0.125,0.56), na.color="transparent")
+mytext <- paste(
+    "Canton: ",mdata$NOM_CANT,"<br/>",
+    "District: ",mdata$NOM_DIST,"<br/>",
+    "Value: ", round(mdata$est,2), "<br/>",
+    sep="") %>%
+  lapply(htmltools::HTML)
+
+leaflet(mdata) %>% 
+  addTiles()  %>% 
+  setView(lat=9.56, lng=-84.05 , zoom=7) %>%
+  addProviderTiles("Esri.WorldGrayCanvas") %>% 
+  addPolygons( fillColor = ~mypalette(mdata[["est"]]), stroke=FALSE,fillOpacity = 1,smoothFactor = 0,label = mytext)
+
+```
+
+
+
+### Exceedence probability (Percentile 20 - 0.29 prevalence)
+```{r echo=FALSE}
+mypalette <- colorNumeric( palette="viridis", domain=c(0,1), na.color="transparent")
+mytext <- paste(
+    "Canton: ",mdata$NOM_CANT,"<br/>",
+    "District: ",mdata$NOM_DIST,"<br/>",
+    "Value: ", round(mdata$excl,2), "<br/>",
+    sep="") %>%
+  lapply(htmltools::HTML)
+
+leaflet(mdata) %>% 
+  addTiles()  %>% 
+  setView(lat=9.56, lng=-84.05 , zoom=7) %>%
+  addProviderTiles("Esri.WorldGrayCanvas") %>% 
+  addPolygons( fillColor = ~mypalette(mdata[["excl"]]), stroke=FALSE,fillOpacity = 1,smoothFactor = 0,label = mytext)
+
+```
+
+
+### Exceedence probability (Percentile 50 - 0.34 prevalence)
+```{r echo=FALSE}
+mypalette <- colorNumeric( palette="viridis", domain=c(0,1), na.color="transparent")
+mytext <- paste(
+    "Canton: ",mdata$NOM_CANT,"<br/>",
+    "District: ",mdata$NOM_DIST,"<br/>",
+    "Value: ", round(mdata$excm,2), "<br/>",
+    sep="") %>%
+  lapply(htmltools::HTML)
+
+leaflet(mdata) %>% 
+  addTiles()  %>% 
+  setView(lat=9.56, lng=-84.05 , zoom=7) %>%
+  addProviderTiles("Esri.WorldGrayCanvas") %>% 
+  addPolygons( fillColor = ~mypalette(mdata[["excm"]]), stroke=FALSE,fillOpacity = 1,smoothFactor = 0,label = mytext)
+
+```
+
+
+### Exceedence probability (Percentile 80 - 0.38 prevalence)
+```{r echo=FALSE}
+mypalette <- colorNumeric( palette="viridis", domain=c(0,1), na.color="transparent")
+mytext <- paste(
+    "Canton: ",mdata$NOM_CANT,"<br/>",
+    "District: ",mdata$NOM_DIST,"<br/>",
+    "Value: ", round(mdata$excu,2), "<br/>",
+    sep="") %>%
+  lapply(htmltools::HTML)
+
+leaflet(mdata) %>% 
+  addTiles()  %>% 
+  setView(lat=9.56, lng=-84.05 , zoom=7) %>%
+  addProviderTiles("Esri.WorldGrayCanvas") %>% 
+  addPolygons( fillColor = ~mypalette(mdata[["excu"]]), stroke=FALSE,fillOpacity = 1,smoothFactor = 0,label = mytext)
+
+```
+
