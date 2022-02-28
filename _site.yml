@@ -6,6 +6,6 @@ navbar:
     - text: "About"
       href: about.html
     - text: "Test"
-      href: about.html
+      href: Test.html
 name: my-website
 output_dir: docs
