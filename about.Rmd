@@ -2,11 +2,11 @@
 title: "Combined Prevalence"
 ---
 
-```{r}
+```{r include=FALSE}
 load("C:\\Users\\manja\\OneDrive - Universidad Estatal a Distancia\\Escritorio\\UCR\\Maestria\\KAUST\\test3\\mdata.Rdata")
 ```
 
-# Data
+### Data
 ```{r echo=FALSE, warning=FALSE}
 mypalette <- colorNumeric( palette="viridis", domain=mdata$Prev, na.color="transparent")
 mytext <- paste(
